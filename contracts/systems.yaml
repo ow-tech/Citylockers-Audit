@@ -1,0 +1,8 @@
+version: 1
+systems:
+  CL: { name: CityLockers App }
+  KH: { name: Khizana }
+  PA: { name: Partner API }
+  BR: { name: LockerGatewayBridge }
+  KS: { name: Kiosk / gateway-new, status: deferred }
+  AU: { name: Audit Platform }
