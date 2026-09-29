@@ -38,9 +38,20 @@ CREATE TABLE audit.audit_events (
   trace_id uuid REFERENCES audit.traces(trace_id),
   operation_id uuid,
   request_id text,
+  source_kind text NOT NULL DEFAULT 'explicit_event' CHECK (source_kind IN ('business_activity', 'operational_event', 'explicit_error', 'explicit_event')),
+  source_system text REFERENCES audit.systems(code),
+  source_stream text,
+  source_record_id text,
+  source_transition text,
+  source_occurred_at timestamptz,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX audit_events_authoritative_source_identity_unique
+  ON audit.audit_events
+  (source_system, source_stream, source_record_id, source_transition) NULLS NOT DISTINCT
+  WHERE source_kind IN ('business_activity', 'operational_event');
 
 CREATE TABLE audit.error_occurrences (
   support_reference uuid PRIMARY KEY,
