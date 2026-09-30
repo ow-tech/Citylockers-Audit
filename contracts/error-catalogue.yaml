@@ -1,6 +1,16 @@
 version: 1
 format: <SYSTEM>-<DOMAIN>-<NUMBER>
 errors:
+  - code: PA-AUTH-001
+    meaning: Partner API credential missing or invalid
+  - code: PA-AUTH-002
+    meaning: Partner is not authorized for the requested operation
+  - code: PA-VALID-001
+    meaning: Partner API request failed validation
+  - code: PA-BOOK-001
+    meaning: Partner API booking operation was rejected
+  - code: PA-UNCA-001
+    meaning: Uncatalogued Partner API error
   - code: CL-APP-001
     meaning: CityLockers route or render failure
   - code: CL-PAY-001
