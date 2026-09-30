@@ -1,3 +1,9 @@
 version: 1
 format: <SYSTEM>-<DOMAIN>-<NUMBER>
-errors: []
+errors:
+  - code: CL-APP-001
+    meaning: CityLockers route or render failure
+  - code: CL-PAY-001
+    meaning: CityLockers payment return link could not be interpreted before backend handling
+  - code: CL-UNCA-001
+    meaning: Uncatalogued CityLockers client error
