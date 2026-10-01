@@ -1,0 +1,15 @@
+[Unit]
+Description=CityLockers Audit daily PostgreSQL backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/citylockers-audit
+EnvironmentFile=/etc/citylockers-audit/audit.env
+ExecStart=/opt/citylockers-audit/scripts/backup-daily.sh
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ReadWritePaths=/var/backups/citylockers-audit

@@ -9,5 +9,5 @@ Authoritative rules:
 3. Existing `event_id` chains are preserved. `trace_id` and `operation_id` layer onto them rather than replacing them.
 4. Error definitions use `<SYSTEM>-<DOMAIN>-<NUMBER>`, are static rather than counters, and are never reused. Each occurrence has a separate support reference.
 5. The same canonical error code must be used in user UI, partner responses where relevant, application diagnostics, audit occurrences, and Khizana operator UI.
-6. Sensitive values never enter central audit storage. AI analysis is deferred and will initially be read-only.
+6. Sensitive values never enter central audit storage. Future AI analysis is read-only and must remain outside ingestion, query, Bridge, and locker critical paths; it cannot mutate evidence, bookings, payments, locker commands, or configuration.
 7. Kiosk/gateway-new implementation is explicitly deferred.

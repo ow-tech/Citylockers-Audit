@@ -17,7 +17,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 4
-    networks: [audit-internal]
+    networks: [audit-internal, audit-tunnel]
   postgres:
     image: postgres:16.6-alpine
     restart: unless-stopped
@@ -36,8 +36,19 @@ services:
     volumes:
       - audit-postgres:/var/lib/postgresql/data
     networks: [audit-internal]
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["cloudflared"]
+    # Empty outside the opt-in profile; cloudflared rejects a missing token at profile startup.
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN:-}"]
+    depends_on:
+      audit-api:
+        condition: service_healthy
+    networks: [audit-tunnel]
 networks:
   audit-internal:
     internal: true
+  audit-tunnel:
 volumes:
   audit-postgres:

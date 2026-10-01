@@ -13,6 +13,8 @@ uvicorn app.main:app --reload
 
 The skeleton exposes `GET /health`.
 
+Deployment preparation, backups, restore verification, the optional Cloudflare Tunnel profile, retention, and operational procedures are documented in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). PostgreSQL is private to Compose; the API host port defaults to loopback-only.
+
 ## Read-only operator queries
 
 The query API exposes sanitized records at `/v1/errors`, `/v1/errors/{occurrence_id}`,
