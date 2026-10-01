@@ -12,3 +12,13 @@ uvicorn app.main:app --reload
 ```
 
 The skeleton exposes `GET /health`.
+
+## Read-only operator queries
+
+The query API exposes sanitized records at `/v1/errors`, `/v1/errors/{occurrence_id}`,
+`/v1/error-definitions/{code}`, `/v1/events`, and `/v1/traces/{trace_id}`. Set
+`AUDIT_QUERY_TOKEN` on this service and pass it only from Khizana's server-side
+`audit-query` function. It is intentionally distinct from `AUDIT_INGEST_TOKEN`; do not
+place either value in browser configuration. Khizana requires `AUDIT_QUERY_URL` and
+`AUDIT_QUERY_TOKEN` server secrets. Production connectivity remains approved-network-path
+deployment work.

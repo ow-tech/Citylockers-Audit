@@ -14,6 +14,9 @@ class AuditStore(ABC):
     def query_events(self, *, source_system: str | None = None, source_stream: str | None = None, source_record_id: str | None = None) -> list[AuditEvent]: ...
 
     @abstractmethod
+    def all_events(self) -> list[AuditEvent]: ...
+
+    @abstractmethod
     def save_checkpoint(self, checkpoint: SourceCheckpoint) -> SourceCheckpoint: ...
 
     @abstractmethod

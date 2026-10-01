@@ -34,6 +34,12 @@ class PostgresAuditStore(AuditStore):
             cursor.execute(f"SELECT {fields} FROM audit.audit_events{where} ORDER BY occurred_at", values)
             return [AuditEvent.model_validate(row) for row in cursor.fetchall()]
 
+    def all_events(self) -> list[AuditEvent]:
+        fields = "event_id::text AS event_id, system_code, event_type, occurred_at, trace_id::text AS trace_id, operation_id::text AS operation_id, request_id, metadata, source_kind, source_system, source_stream, source_record_id, source_transition, source_occurred_at"
+        with connect(self.database_url, row_factory=dict_row) as connection, connection.cursor() as cursor:
+            cursor.execute(f"SELECT {fields} FROM audit.audit_events")
+            return [AuditEvent.model_validate(row) for row in cursor.fetchall()]
+
     def save_checkpoint(self, checkpoint: SourceCheckpoint) -> SourceCheckpoint:
         with connect(self.database_url, row_factory=dict_row) as connection, connection.cursor() as cursor:
             cursor.execute(

@@ -19,6 +19,9 @@ class MemoryAuditStore(AuditStore):
     def query_events(self, *, source_system: str | None = None, source_stream: str | None = None, source_record_id: str | None = None) -> list[AuditEvent]:
         return [event for event in self.events.values() if (source_system is None or event.source_system == source_system) and (source_stream is None or event.source_stream == source_stream) and (source_record_id is None or event.source_record_id == source_record_id)]
 
+    def all_events(self) -> list[AuditEvent]:
+        return list(self.events.values())
+
     def save_checkpoint(self, checkpoint: SourceCheckpoint) -> SourceCheckpoint:
         self._checkpoints[checkpoint.source_name] = checkpoint
         return checkpoint
