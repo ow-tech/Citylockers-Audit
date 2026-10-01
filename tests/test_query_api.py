@@ -24,6 +24,7 @@ def test_read_api_requires_distinct_query_token(monkeypatch) -> None:
     assert api.get("/v1/errors").status_code == 401
     assert api.get("/v1/errors", headers={"Authorization": "Bearer ingest-token"}).status_code == 401
     assert api.get("/v1/errors", headers=headers).status_code == 200
+    assert api.post("/v1/events", json={"system_code": "CL", "event_type": "client.error", "occurred_at": "2026-10-01T00:00:00Z"}, headers=headers).status_code == 401
 
 
 def test_errors_are_filterable_paginated_and_sanitized(monkeypatch) -> None:

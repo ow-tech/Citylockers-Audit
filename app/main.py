@@ -12,6 +12,7 @@ from app.store.memory import MemoryAuditStore
 from app.store.postgres import PostgresAuditStore
 
 MAX_BATCH_SIZE = 100
+MAX_BODY_BYTES = 256 * 1024
 MAX_QUERY_WINDOW = timedelta(days=31)
 app = FastAPI(title="CityLockers Audit", version="0.1.0")
 store = PostgresAuditStore(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else MemoryAuditStore()
@@ -26,13 +27,33 @@ def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
+@app.get("/ready")
+def ready() -> dict[str, str]:
+    try:
+        all_events()
+    except Exception:
+        raise HTTPException(503, "not ready") from None
+    return {"status": "ready"}
+
+
+def require_ingest_token(authorization: str | None) -> None:
+    expected = os.environ.get("AUDIT_INGEST_TOKEN")
+    received = authorization.removeprefix("Bearer ") if authorization else ""
+    if not expected:
+        raise HTTPException(503, "ingest API is not configured")
+    if not hmac.compare_digest(received, expected):
+        raise HTTPException(401, "unauthorized")
+
+
 @app.post("/v1/events")
-def ingest_event(event: AuditEvent) -> dict[str, str]:
+def ingest_event(event: AuditEvent, authorization: str | None = Header(None)) -> dict[str, str]:
+    require_ingest_token(authorization)
     return {"status": store.record_event(event), "event_id": event.event_id}
 
 
 @app.post("/v1/events/batch")
-def ingest_event_batch(events: list[dict[str, Any]]) -> dict[str, Any]:
+def ingest_event_batch(events: list[dict[str, Any]], authorization: str | None = Header(None)) -> dict[str, Any]:
+    require_ingest_token(authorization)
     if len(events) > MAX_BATCH_SIZE:
         raise HTTPException(status_code=422, detail=f"batch may contain at most {MAX_BATCH_SIZE} events")
     counts = {"accepted": 0, "duplicate": 0, "rejected": 0}

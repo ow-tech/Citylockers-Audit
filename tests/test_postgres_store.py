@@ -31,6 +31,7 @@ def source_event(*, record_id: str = "booking-1", transition: str = "created", e
 
 
 def test_postgres_store_enforces_source_provenance_and_checkpoints(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUDIT_INGEST_TOKEN", "test-ingest-token")
     store = PostgresAuditStore(DATABASE_URL)
     with connect(DATABASE_URL) as connection, connection.cursor() as cursor:
         cursor.execute("INSERT INTO audit.systems (code, name) VALUES ('KH', 'Khizana'), ('BR', 'Bridge') ON CONFLICT (code) DO NOTHING")
@@ -51,6 +52,6 @@ def test_postgres_store_enforces_source_provenance_and_checkpoints(monkeypatch: 
 
     monkeypatch.setattr(main, "store", store)
     batch_event = source_event(record_id="booking-2").model_dump(mode="json")
-    response = TestClient(main.app).post("/v1/events/batch", json=[batch_event, batch_event])
+    response = TestClient(main.app).post("/v1/events/batch", json=[batch_event, batch_event], headers={"Authorization": "Bearer test-ingest-token"})
     assert response.status_code == 200
     assert response.json() == {"accepted": 1, "duplicate": 1, "rejected": 0, "rejections": []}

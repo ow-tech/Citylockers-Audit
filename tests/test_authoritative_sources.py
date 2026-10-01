@@ -36,9 +36,11 @@ def test_checkpoint_create_update_read() -> None:
 
 
 def test_batch_returns_mixed_counts_without_echoing_bad_payload() -> None:
+    import os
+    os.environ["AUDIT_INGEST_TOKEN"] = "test-ingest-token"
     store.events.clear(); store._source_events.clear()
     payload = source_event().model_dump(mode="json")
-    response = TestClient(app).post("/v1/events/batch", json=[payload, payload, {"secret": "not-returned"}])
+    response = TestClient(app).post("/v1/events/batch", json=[payload, payload, {"secret": "not-returned"}], headers={"Authorization": "Bearer test-ingest-token"})
     assert response.json() == {"accepted": 1, "duplicate": 1, "rejected": 1, "rejections": [{"index": 2, "code": "invalid_event"}]}
 
 

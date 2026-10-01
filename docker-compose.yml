@@ -1,25 +1,43 @@
 services:
   audit-api:
     build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql://audit:audit@postgres:5432/audit
+      DATABASE_URL: ${AUDIT_DATABASE_URL}
     ports:
-      - "8080:8080"
+      - "${AUDIT_BIND_ADDRESS:-127.0.0.1}:${AUDIT_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: audit
-      POSTGRES_USER: audit
-      POSTGRES_PASSWORD: audit
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U audit -d audit"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+    networks: [audit-internal]
+  postgres:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_DB: ${AUDIT_POSTGRES_DB}
+      POSTGRES_USER: ${AUDIT_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AUDIT_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
     volumes:
       - audit-postgres:/var/lib/postgresql/data
+    networks: [audit-internal]
+networks:
+  audit-internal:
+    internal: true
 volumes:
   audit-postgres:
