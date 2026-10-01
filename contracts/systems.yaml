@@ -4,5 +4,5 @@ systems:
   KH: { name: Khizana }
   PA: { name: Partner API }
   BR: { name: LockerGatewayBridge }
-  KS: { name: Kiosk / gateway-new, status: deferred }
+  KS: { name: Kiosk / gateway-new, status: active }
   AU: { name: Audit Platform }

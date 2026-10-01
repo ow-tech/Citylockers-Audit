@@ -17,3 +17,5 @@ errors:
     meaning: CityLockers payment return link could not be interpreted before backend handling
   - code: CL-UNCA-001
     meaning: Uncatalogued CityLockers client error
+  - code: KS-UNCA-001
+    meaning: Uncatalogued kiosk error
