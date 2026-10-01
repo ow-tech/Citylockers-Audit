@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 from app.contracts import AuditEvent, SourceCheckpoint, deterministic_adapter_event_id
-from app.main import app, store
+from app import main
 from app.store.memory import MemoryAuditStore
 
 
@@ -35,12 +35,13 @@ def test_checkpoint_create_update_read() -> None:
     assert audit_store.get_checkpoint("khizana") == updated
 
 
-def test_batch_returns_mixed_counts_without_echoing_bad_payload() -> None:
+def test_batch_returns_mixed_counts_without_echoing_bad_payload(monkeypatch) -> None:
     import os
     os.environ["AUDIT_INGEST_TOKEN"] = "test-ingest-token"
-    store.events.clear(); store._source_events.clear()
+    memory_store = MemoryAuditStore()
+    monkeypatch.setattr(main, "store", memory_store)
     payload = source_event().model_dump(mode="json")
-    response = TestClient(app).post("/v1/events/batch", json=[payload, payload, {"secret": "not-returned"}], headers={"Authorization": "Bearer test-ingest-token"})
+    response = TestClient(main.app).post("/v1/events/batch", json=[payload, payload, {"secret": "not-returned"}], headers={"Authorization": "Bearer test-ingest-token"})
     assert response.json() == {"accepted": 1, "duplicate": 1, "rejected": 1, "rejections": [{"index": 2, "code": "invalid_event"}]}
 
 

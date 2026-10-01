@@ -16,7 +16,7 @@ SAFE_METADATA_KEYS = frozenset({
     "error_code", "reference", "fingerprint", "endpoint", "http_status", "reason",
     "partner_id", "booking_id", "booking_reference", "transaction_id", "payment_attempt_id",
     "device_id", "wall_id", "locker_id", "terminal_id", "partner_request_id", "result",
-    "summary", "route", "app_version",
+    "summary", "route", "app_version", "payment_status",
 })
 
 
@@ -72,10 +72,13 @@ def event_record(event: AuditEvent) -> dict[str, Any]:
 
 
 def matches(record: dict[str, Any], *, search: str | None, system: str | None, event_type: str | None,
-            kind: str | None, error_code: str | None, from_at: datetime | None, to_at: datetime | None) -> bool:
+            source_system: str | None, kind: str | None, error_code: str | None,
+            from_at: datetime | None, to_at: datetime | None) -> bool:
     if system and record["system"] != system:
         return False
     if event_type and record["event_type"] != event_type:
+        return False
+    if source_system and record["source_system"] != source_system:
         return False
     if kind == "error" and record["source_kind"] != "explicit_error":
         return False

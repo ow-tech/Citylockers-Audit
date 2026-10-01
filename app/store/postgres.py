@@ -14,6 +14,12 @@ class PostgresAuditStore(AuditStore):
 
     def record_event(self, event: AuditEvent) -> RecordResult:
         with connect(self.database_url) as connection, connection.cursor() as cursor:
+            if event.trace_id:
+                cursor.execute(
+                    """INSERT INTO audit.traces (trace_id, operation_id) VALUES (%s, %s)
+                       ON CONFLICT (trace_id) DO UPDATE SET operation_id = COALESCE(audit.traces.operation_id, EXCLUDED.operation_id)""",
+                    (event.trace_id, event.operation_id),
+                )
             cursor.execute(
                 """INSERT INTO audit.audit_events (event_id, system_code, event_type, occurred_at, trace_id, operation_id, request_id, metadata, source_kind, source_system, source_stream, source_record_id, source_transition, source_occurred_at)
                    VALUES (%(event_id)s, %(system_code)s, %(event_type)s, %(occurred_at)s, %(trace_id)s, %(operation_id)s, %(request_id)s, %(metadata)s, %(source_kind)s, %(source_system)s, %(source_stream)s, %(source_record_id)s, %(source_transition)s, %(source_occurred_at)s)

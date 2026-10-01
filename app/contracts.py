@@ -10,6 +10,36 @@ SystemCode = Literal["CL", "KH", "PA", "BR", "KS", "AU"]
 SourceKind = Literal["business_activity", "operational_event", "explicit_error", "explicit_event"]
 ADAPTER_SOURCE_KINDS = frozenset({"business_activity", "operational_event"})
 _ADAPTER_EVENT_NAMESPACE = UUID("56563ff2-c55e-52e6-9ed6-da808ed636c3")
+PROHIBITED_METADATA_KEYS = frozenset({
+    "authorization", "authorization_header", "cookie", "cookies", "password", "passwd",
+    "otp", "verification_code", "access_code", "locker_access_code", "jwt", "access_token",
+    "refresh_token", "api_key", "service_role_key", "pan", "card_number", "cvv", "cvc",
+    "merchant_secure_key", "merchant_key", "provider_evidence", "raw_request", "raw_response",
+})
+
+
+def normalized_metadata_key(value: object) -> str:
+    """Normalize spelling variants without applying unsafe substring matching."""
+    return str(value).strip().casefold().replace("-", "_").replace(" ", "_")
+
+
+def prohibited_metadata_path(value: object, path: str = "metadata") -> str | None:
+    """Return a key path for a prohibited field without retaining its value."""
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            key_text = str(key)
+            nested_path = f"{path}.{key_text}"
+            if normalized_metadata_key(key) in PROHIBITED_METADATA_KEYS:
+                return nested_path
+            found = prohibited_metadata_path(nested, nested_path)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            found = prohibited_metadata_path(nested, f"{path}[{index}]")
+            if found:
+                return found
+    return None
 
 
 def deterministic_adapter_event_id(source_system: SystemCode, source_stream: str, source_record_id: str, source_transition: str | None = None) -> str:
@@ -39,6 +69,14 @@ class AuditEvent(BaseModel):
     def reject_blank_strings(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
             raise ValueError("must not be blank")
+        return value
+
+    @field_validator("metadata")
+    @classmethod
+    def reject_prohibited_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if prohibited_metadata_path(value):
+            # Never include the rejected key path or value in a client response or logs.
+            raise ValueError("metadata contains a prohibited field")
         return value
 
     @model_validator(mode="after")
