@@ -1,0 +1,13 @@
+{
+  "event_id": "00000000-0000-0000-0000-000000000105",
+  "system_code": "KS",
+  "event_type": "kiosk.runtime.error",
+  "occurred_at": "2026-10-03T08:05:00Z",
+  "source_kind": "explicit_error",
+  "metadata": {
+    "error_code": "KS-UNCA-001",
+    "reference": "KS-SR-20261003-001",
+    "device_id": "gateway-01",
+    "summary": "Unexpected local runtime failure"
+  }
+}

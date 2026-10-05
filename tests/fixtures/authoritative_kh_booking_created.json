@@ -1,0 +1,16 @@
+{
+  "system_code": "KH",
+  "event_type": "booking.created",
+  "occurred_at": "2026-10-03T08:02:00Z",
+  "source_kind": "business_activity",
+  "source_system": "KH",
+  "source_stream": "booking.bookings",
+  "source_record_id": "booking-12345",
+  "source_transition": "created",
+  "source_occurred_at": "2026-10-03T08:02:00Z",
+  "metadata": {
+    "booking_id": "booking-12345",
+    "booking_reference": "CL-12345",
+    "result": "created"
+  }
+}

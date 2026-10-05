@@ -24,7 +24,7 @@ class PostgresAuditStore(AuditStore):
                 """INSERT INTO audit.audit_events (event_id, system_code, event_type, occurred_at, trace_id, operation_id, request_id, metadata, source_kind, source_system, source_stream, source_record_id, source_transition, source_occurred_at)
                    VALUES (%(event_id)s, %(system_code)s, %(event_type)s, %(occurred_at)s, %(trace_id)s, %(operation_id)s, %(request_id)s, %(metadata)s, %(source_kind)s, %(source_system)s, %(source_stream)s, %(source_record_id)s, %(source_transition)s, %(source_occurred_at)s)
                    ON CONFLICT DO NOTHING RETURNING event_id""",
-                {**event.model_dump(mode="json"), "metadata": Jsonb(event.metadata)},
+                {**event.model_dump(mode="json"), "metadata": Jsonb(event.metadata.model_dump(exclude_none=True))},
             )
             return "accepted" if cursor.fetchone() else "duplicate"
 

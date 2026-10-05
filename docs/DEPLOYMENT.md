@@ -11,7 +11,7 @@ Kiosk events arrive through LockerGatewayBridge; kiosks do not send audit HTTP d
 
 The Compose API host port is loopback-only by default. `cloudflared` is an opt-in Compose profile on `audit-tunnel`; it can reach `audit-api` but is not attached to `audit-internal`. PostgreSQL is attached only to the internal Docker network, has no published port, and must never be routed through Cloudflare or exposed by router forwarding.
 
-Tunnel HTTPS does not replace application authentication: writers require `AUDIT_INGEST_TOKEN`, while Khizana's server-side query proxy requires the distinct `AUDIT_QUERY_TOKEN`. Cloudflare Access is optional defense in depth; service tokens may be added later in addition to, never instead of, these bearer tokens.
+Tunnel HTTPS does not replace application authentication: writers require `AUDIT_INGEST_TOKEN`, while Khizana's server-side query proxy requires the distinct `AUDIT_QUERY_TOKEN`. Cloudflare Access is optional defense in depth; service tokens may be added later in addition to, never instead of, these bearer tokens. The optional Central Audit pull collector uses the separate `KHIZANA_AUDIT_EXPORT_TOKEN` only against Khizana's read-only audit-export Edge Function; it does not use either central API token.
 
 ## Host prerequisites and layout
 
@@ -26,7 +26,7 @@ Use a supported Linux host with Docker, Docker Compose, systemd (for the supplie
 ## Initial installation
 
 1. Copy or clone the reviewed release to `/opt/citylockers-audit`.
-2. Create `/etc/citylockers-audit/audit.env`, mode `0600`, from `.env.example`; configure distinct ingest/query tokens, database credentials, release metadata, backup recipient, and any operator-managed remote-copy script.
+2. Create `/etc/citylockers-audit/audit.env`, mode `0600`, from `.env.example`; configure distinct ingest/query tokens, database credentials, release metadata, backup recipient, and any operator-managed remote-copy script. To enable Khizana collection, additionally set `KHIZANA_AUDIT_COLLECTOR_ENABLED=true`, the full `KHIZANA_AUDIT_EXPORT_URL`, and `KHIZANA_AUDIT_EXPORT_TOKEN`; optionally tune `KHIZANA_AUDIT_POLL_INTERVAL` (30), `KHIZANA_AUDIT_PAGE_SIZE` (100), and `KHIZANA_AUDIT_REQUEST_TIMEOUT` (10).
 3. Create the daily and weekly backup directories, mode `0700`.
 4. Build and start PostgreSQL: `docker compose --env-file /etc/citylockers-audit/audit.env up -d --build postgres`.
 5. Run migrations explicitly: `docker compose --env-file /etc/citylockers-audit/audit.env exec -T audit-api python -m app.migrate`. API startup never runs migrations.

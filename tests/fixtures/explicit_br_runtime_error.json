@@ -1,0 +1,15 @@
+{
+  "event_id": "00000000-0000-0000-0000-000000000102",
+  "system_code": "BR",
+  "event_type": "bridge.runtime.error",
+  "occurred_at": "2026-10-03T08:01:00Z",
+  "trace_id": "00000000-0000-0000-0000-000000000112",
+  "source_kind": "explicit_error",
+  "metadata": {
+    "error_code": "BR-UNCA-001",
+    "reference": "BR-SR-20261003-001",
+    "fingerprint": "mqtt-disconnect-v1",
+    "device_id": "bridge-01",
+    "summary": "MQTT connection ended before acknowledgement"
+  }
+}

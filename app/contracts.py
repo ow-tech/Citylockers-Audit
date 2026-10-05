@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 SystemCode = Literal["CL", "KH", "PA", "BR", "KS", "AU"]
 SourceKind = Literal["business_activity", "operational_event", "explicit_error", "explicit_event"]
 ADAPTER_SOURCE_KINDS = frozenset({"business_activity", "operational_event"})
+EXPLICIT_RUNTIME_SOURCE_KINDS = frozenset({"explicit_error", "explicit_event"})
 _ADAPTER_EVENT_NAMESPACE = UUID("56563ff2-c55e-52e6-9ed6-da808ed636c3")
 PROHIBITED_METADATA_KEYS = frozenset({
     "authorization", "authorization_header", "cookie", "cookies", "password", "passwd",
@@ -47,6 +48,92 @@ def deterministic_adapter_event_id(source_system: SystemCode, source_stream: str
     return str(uuid5(_ADAPTER_EVENT_NAMESPACE, "\x1f".join((source_system, source_stream, source_record_id, source_transition or ""))))
 
 
+class SafeContext(BaseModel):
+    """The complete, bounded metadata vocabulary accepted from producers."""
+
+    model_config = ConfigDict(extra="forbid")
+    error_code: str | None = Field(default=None, min_length=1, max_length=100)
+    reference: str | None = Field(default=None, min_length=1, max_length=100)
+    fingerprint: str | None = Field(default=None, min_length=1, max_length=200)
+    endpoint: str | None = Field(default=None, min_length=1, max_length=300)
+    http_status: int | None = Field(default=None, ge=100, le=599)
+    reason: str | None = Field(default=None, min_length=1, max_length=1000)
+    partner_id: str | None = Field(default=None, min_length=1, max_length=300)
+    booking_id: str | None = Field(default=None, min_length=1, max_length=300)
+    booking_reference: str | None = Field(default=None, min_length=1, max_length=300)
+    transaction_id: str | None = Field(default=None, min_length=1, max_length=300)
+    payment_attempt_id: str | None = Field(default=None, min_length=1, max_length=300)
+    device_id: str | None = Field(default=None, min_length=1, max_length=300)
+    wall_id: str | None = Field(default=None, min_length=1, max_length=300)
+    locker_id: str | None = Field(default=None, min_length=1, max_length=300)
+    terminal_id: str | None = Field(default=None, min_length=1, max_length=300)
+    partner_request_id: str | None = Field(default=None, min_length=1, max_length=300)
+    result: str | None = Field(default=None, min_length=1, max_length=100)
+    summary: str | None = Field(default=None, min_length=1, max_length=1000)
+    service: str | None = Field(default=None, min_length=1, max_length=100)
+    surface: str | None = Field(default=None, min_length=1, max_length=100)
+    route: str | None = Field(default=None, min_length=1, max_length=300)
+    app_version: str | None = Field(default=None, min_length=1, max_length=100)
+    exception_type: str | None = Field(default=None, min_length=1, max_length=100)
+    payment_status: str | None = Field(default=None, min_length=1, max_length=100)
+    source_surface: Literal["citylockers_site"] | None = None
+
+    @field_validator("*")
+    @classmethod
+    def reject_blank_context_strings(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("must not be blank")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_prohibited_context(cls, value: object) -> object:
+        if prohibited_metadata_path(value):
+            # Never include the rejected key path or value in a client response or logs.
+            raise ValueError("metadata contains a prohibited field")
+        return value
+
+
+class ErrorOccurrence(SafeContext):
+    """Required context for an ``explicit_error`` AuditEvent.
+
+    ``reference`` is the per-occurrence support reference exposed to operators;
+    it is deliberately distinct from the stable canonical ``error_code``.
+    """
+
+    error_code: str = Field(min_length=1, max_length=100)
+    reference: str = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def distinct_code_and_reference(self) -> "ErrorOccurrence":
+        if self.error_code == self.reference:
+            raise ValueError("error code and support reference must differ")
+        return self
+
+
+class ErrorOccurrenceEvent(BaseModel):
+    """Versioned producer contract for one explicit error occurrence.
+
+    The API continues to accept the broader ``AuditEvent`` union.  Producers use
+    this constrained form so their generated schema cannot accidentally describe
+    an authoritative-source event or omit occurrence identity.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    event_id: UUID | None = None
+    system_code: SystemCode
+    event_type: str = Field(min_length=1, max_length=200)
+    occurred_at: datetime
+    trace_id: UUID | None = None
+    operation_id: UUID | None = None
+    request_id: UUID | None = None
+    metadata: ErrorOccurrence
+    source_kind: Literal["explicit_error"] = "explicit_error"
+
+    def as_audit_event(self) -> "AuditEvent":
+        return AuditEvent.model_validate(self.model_dump(mode="json", exclude_none=True))
+
+
 class AuditEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     event_id: str | None = None
@@ -56,7 +143,7 @@ class AuditEvent(BaseModel):
     trace_id: str | None = None
     operation_id: str | None = None
     request_id: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: SafeContext = Field(default_factory=SafeContext)
     source_kind: SourceKind = "explicit_event"
     source_system: SystemCode | None = None
     source_stream: str | None = Field(default=None, max_length=200)
@@ -71,25 +158,26 @@ class AuditEvent(BaseModel):
             raise ValueError("must not be blank")
         return value
 
-    @field_validator("metadata")
-    @classmethod
-    def reject_prohibited_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
-        if prohibited_metadata_path(value):
-            # Never include the rejected key path or value in a client response or logs.
-            raise ValueError("metadata contains a prohibited field")
-        return value
-
     @model_validator(mode="after")
     def normalize_identity(self) -> "AuditEvent":
-        values = (self.source_system, self.source_stream, self.source_record_id)
+        source_identity_values = (
+            self.source_system,
+            self.source_stream,
+            self.source_record_id,
+            self.source_transition,
+            self.source_occurred_at,
+        )
         if self.source_kind in ADAPTER_SOURCE_KINDS:
-            if not all(values):
-                raise ValueError("adapter source events require system, stream, and record ID")
-            generated = deterministic_adapter_event_id(*values, self.source_transition)
+            if not all(source_identity_values):
+                raise ValueError("authoritative source events require system, stream, record ID, transition, and occurred-at")
+            generated = deterministic_adapter_event_id(self.source_system, self.source_stream, self.source_record_id, self.source_transition)
             if self.event_id is None:
                 self.event_id = generated
-        elif any(value is not None for value in values):
+        elif any(value is not None for value in source_identity_values):
             raise ValueError("explicit events must not declare an authoritative source identity")
+        if self.source_kind == "explicit_error":
+            ErrorOccurrence.model_validate(self.metadata.model_dump(exclude_none=True))
+            ErrorOccurrenceEvent.model_validate(self.model_dump(exclude_none=True))
         if self.event_id is None:
             self.event_id = str(uuid4())
         return self

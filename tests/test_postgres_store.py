@@ -42,7 +42,8 @@ def test_postgres_store_enforces_source_provenance_and_checkpoints(monkeypatch: 
     assert store.record_event(first) == "duplicate"
     assert store.record_event(source_event(record_id=record_id, event_id=str(uuid4()))) == "duplicate"
     assert store.record_event(source_event(record_id=record_id, transition="completed")) == "accepted"
-    assert store.record_event(AuditEvent(system_code="BR", event_type="bridge.error", occurred_at=datetime.now(timezone.utc), source_kind="explicit_error")) == "accepted"
+    assert store.record_event(AuditEvent(system_code="BR", event_type="bridge.error", occurred_at=datetime.now(timezone.utc), source_kind="explicit_error",
+                                         metadata={"error_code": "BR-UNCA-001", "reference": "BR-SR-test-001"})) == "accepted"
 
     created = store.save_checkpoint(SourceCheckpoint(source_name="khizana", cursor_value="10", cursor_type="id"))
     updated = store.save_checkpoint(SourceCheckpoint(source_name="khizana", cursor_value="11", cursor_type="id"))

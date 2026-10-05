@@ -1,0 +1,15 @@
+{
+  "event_id": "00000000-0000-0000-0000-000000000103",
+  "system_code": "CL",
+  "event_type": "client.error",
+  "occurred_at": "2026-10-03T08:03:00Z",
+  "request_id": "00000000-0000-0000-0000-000000000113",
+  "source_kind": "explicit_error",
+  "metadata": {
+    "error_code": "CL-APP-001",
+    "reference": "CL-SR-20261003-001",
+    "fingerprint": "route-render-v1",
+    "booking_id": "booking-12345",
+    "summary": "Route render failed"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "00000000-0000-0000-0000-000000000101",
+  "system_code": "KS",
+  "event_type": "locker.unlock_actuation_sent",
+  "occurred_at": "2026-10-03T08:00:00Z",
+  "trace_id": "00000000-0000-0000-0000-000000000111",
+  "operation_id": "00000000-0000-0000-0000-000000000121",
+  "request_id": "ks-request-101",
+  "source_kind": "explicit_event",
+  "metadata": {
+    "device_id": "gateway-01",
+    "wall_id": "wall-downtown",
+    "locker_id": "locker-A12",
+    "terminal_id": "terminal-01",
+    "result": "sent"
+  }
+}

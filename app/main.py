@@ -1,5 +1,6 @@
 import hmac
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
@@ -9,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from app.contracts import AuditEvent
+from app.khizana_collector import CollectorWorker, KhizanaAuthoritativeCollector, configured_collector
 from app.query import bounded_limit, error_definitions, event_record, page_events, recurrence
 from app.store.memory import MemoryAuditStore
 from app.store.postgres import PostgresAuditStore
@@ -16,8 +18,23 @@ from app.store.postgres import PostgresAuditStore
 MAX_BATCH_SIZE = 100
 MAX_BODY_BYTES = 256 * 1024
 MAX_QUERY_WINDOW = timedelta(days=31)
-app = FastAPI(title="CityLockers Audit", version="0.1.0")
 store = PostgresAuditStore(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else MemoryAuditStore()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    config = configured_collector()
+    worker = CollectorWorker(KhizanaAuthoritativeCollector(config, store)) if config else None
+    if worker:
+        worker.start()
+    try:
+        yield
+    finally:
+        if worker:
+            worker.stop()
+
+
+app = FastAPI(title="CityLockers Audit", version="0.1.0", lifespan=lifespan)
 
 
 @app.middleware("http")

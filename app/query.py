@@ -9,14 +9,14 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from app.contracts import AuditEvent
+from app.contracts import AuditEvent, SafeContext
 
 MAX_LIMIT = 100
 SAFE_METADATA_KEYS = frozenset({
     "error_code", "reference", "fingerprint", "endpoint", "http_status", "reason",
     "partner_id", "booking_id", "booking_reference", "transaction_id", "payment_attempt_id",
     "device_id", "wall_id", "locker_id", "terminal_id", "partner_request_id", "result",
-    "summary", "route", "app_version", "payment_status",
+    "summary", "service", "surface", "route", "app_version", "exception_type", "payment_status", "source_surface",
 })
 
 
@@ -41,8 +41,9 @@ def encode_cursor(event: AuditEvent) -> str:
     return urlsafe_b64encode(raw).decode()
 
 
-def safe_metadata(metadata: dict[str, Any]) -> dict[str, str | int]:
-    return {key: value for key, value in metadata.items()
+def safe_metadata(metadata: SafeContext | dict[str, Any]) -> dict[str, str | int]:
+    values = metadata.model_dump(exclude_none=True) if isinstance(metadata, SafeContext) else metadata
+    return {key: value for key, value in values.items()
             if key in SAFE_METADATA_KEYS and isinstance(value, (str, int)) and not isinstance(value, bool)}
 
 

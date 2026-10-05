@@ -1,0 +1,18 @@
+{
+  "event_id": "00000000-0000-0000-0000-000000000104",
+  "system_code": "PA",
+  "event_type": "partner.api.error",
+  "occurred_at": "2026-10-03T08:04:00Z",
+  "trace_id": "00000000-0000-0000-0000-000000000114",
+  "operation_id": "00000000-0000-0000-0000-000000000124",
+  "request_id": "00000000-0000-0000-0000-000000000134",
+  "source_kind": "explicit_error",
+  "metadata": {
+    "error_code": "PA-AUTH-001",
+    "reference": "PA-SR-20261003-001",
+    "fingerprint": "partner-auth-v1",
+    "endpoint": "/partner/v1/bookings",
+    "http_status": 401,
+    "summary": "Partner credentials were rejected"
+  }
+}

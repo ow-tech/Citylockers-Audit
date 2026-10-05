@@ -8,7 +8,10 @@ from app.store.memory import MemoryAuditStore
 
 
 def source_event(transition="created", event_id=None):
-    return AuditEvent(event_id=event_id, system_code="KH", event_type="booking.created", occurred_at=datetime(2026, 9, 29, tzinfo=timezone.utc), source_kind="business_activity", source_system="KH", source_stream="booking.bookings", source_record_id="booking-1", source_transition=transition)
+    occurred_at = datetime(2026, 9, 29, tzinfo=timezone.utc)
+    return AuditEvent(event_id=event_id, system_code="KH", event_type="booking.created", occurred_at=occurred_at,
+                      source_kind="business_activity", source_system="KH", source_stream="booking.bookings",
+                      source_record_id="booking-1", source_transition=transition, source_occurred_at=occurred_at)
 
 
 def test_deterministic_adapter_id_and_transition() -> None:
@@ -24,7 +27,8 @@ def test_memory_deduplicates_event_id_and_source_identity() -> None:
 
 
 def test_explicit_event_without_source_is_accepted() -> None:
-    event = AuditEvent(system_code="BR", event_type="bridge.error", occurred_at=datetime.now(timezone.utc), source_kind="explicit_error")
+    event = AuditEvent(system_code="BR", event_type="bridge.error", occurred_at=datetime.now(timezone.utc), source_kind="explicit_error",
+                       metadata={"error_code": "BR-UNCA-001", "reference": "BR-SR-test-001"})
     assert MemoryAuditStore().record_event(event) == "accepted"
 
 

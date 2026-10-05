@@ -24,3 +24,19 @@ The query API exposes sanitized records at `/v1/errors`, `/v1/errors/{occurrence
 place either value in browser configuration. Khizana requires `AUDIT_QUERY_URL` and
 `AUDIT_QUERY_TOKEN` server secrets. Production connectivity remains approved-network-path
 deployment work.
+
+## Khizana authoritative activity collector
+
+Central Audit can pull Khizana's read-only `audit-authoritative-activity-export`
+Edge Function without placing an audit dependency on booking, payment, or locker
+operations. It is disabled unless `KHIZANA_AUDIT_COLLECTOR_ENABLED=true`; set
+`KHIZANA_AUDIT_EXPORT_URL` to the full function URL and give Central Audit the
+separate `KHIZANA_AUDIT_EXPORT_TOKEN`. `KHIZANA_AUDIT_POLL_INTERVAL` defaults to
+30 seconds, `KHIZANA_AUDIT_PAGE_SIZE` defaults to 100 (maximum 100), and
+`KHIZANA_AUDIT_REQUEST_TIMEOUT` defaults to 10 seconds.
+
+The collector owns one `(occurred_at, record_id)` cursor per approved source in
+`audit.source_checkpoints`. It saves a page cursor only after ingesting the whole
+page; a retry can resend rows, and deterministic authoritative source identity
+makes that idempotent. Export credentials never enter Khizana browser, booking,
+payment, or device paths.
